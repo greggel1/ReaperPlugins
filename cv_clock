@@ -1,0 +1,64 @@
+// (C) 2020 and later Yörn Jünger
+
+// NO WARRANTY IS GRANTED. THIS PLUG-IN IS PROVIDED ON AN "AS IS" BASIS, WITHOUT
+// WARRANTY OF ANY KIND. NO LIABILITY IS GRANTED, INCLUDING, BUT NOT LIMITED TO,
+// ANY DIRECT OR INDIRECT,  SPECIAL,  INCIDENTAL OR CONSEQUENTIAL DAMAGE ARISING
+// OUT OF  THE  USE  OR INABILITY  TO  USE  THIS PLUG-IN,  COMPUTER FAILTURE  OF
+// MALFUNCTION INCLUDED.  THE USE OF THE SOURCE CODE,  EITHER  PARTIALLY  OR  IN
+// TOTAL, IS ONLY GRANTED,  IF USED IN THE SENSE OF THE AUTHOR'S INTENTION,  AND
+// USED WITH ACKNOWLEDGEMENT OF THE AUTHOR. FURTHERMORE IS THIS PLUG-IN A  THIRD
+// PARTY CONTRIBUTION,  EVEN IF INCLUDED IN REAPER(TM),  COCKOS INCORPORATED  OR
+// ITS AFFILIATES HAVE NOTHING TO DO WITH IT.  LAST BUT NOT LEAST, BY USING THIS
+// PLUG-IN YOU RELINQUISH YOUR CLAIM TO SUE IT'S AUTHOR, AS WELL AS THE CLAIM TO
+// ENTRUST SOMEBODY ELSE WITH DOING SO.
+// 
+// Released under GPL3:
+// <http://www.gnu.org/licenses/gpl-3.0.en.html>.
+
+desc: CV Clock Generator
+//tags: generator utility
+//author: Yörn Jünger
+
+slider1:0<0,1,1{Pulse,CV}>Mode
+slider2:0<0,1,1{Reaper,Plugin}>BPM by
+slider3:120<30,300,1>BPM
+slider4:5<0,5,1{2,4,8,12,16,24}>Divider
+slider5:0.5<0.01,0.99>Pulse Width
+
+out_pin:output
+
+@init
+
+function bpm2Hz(bpm)
+(
+  2.0 * $pi * (divider * bpm / 60) / srate;
+)
+
+@slider
+divider =
+  (slider4 == 0) ? 2 :
+  (slider4 == 1) ? 4 :
+  (slider4 == 2) ? 8 :
+  (slider4 == 3) ? 12 :
+  (slider4 == 4) ? 16 :
+  (slider4 == 5) ? 24;
+f = bpm2Hz(slider3);
+mode = slider1;
+pw = slider5;
+
+
+@block
+bpm = slider2 == 0 ? tempo : slider3;
+f = bpm2Hz(bpm);
+
+@sample
+(mode == 0 && (play_state == 1 || play_state == 5)) ? (
+  tone = (pos <= $pi * (2 * pw)) ? 1 : 0;
+  out = tone + spl0;
+) : (mode == 1) ? (
+  out = ((log(bpm / 120)) / log(2)) / 10;
+);
+spl0 = out;
+
+pos  = pos + f;
+(pos >= 2.0*$pi) ? pos -= 2.0 * $pi;
